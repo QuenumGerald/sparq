@@ -1,20 +1,20 @@
-This folder contains the verification of the Morpho Blue protocol using CVL, Certora's Verification Language.
+This folder contains the verification of the Sparq protocol using CVL, Certora's Verification Language.
 
-The core concepts of the Morpho Blue protocol are described in the [Whitepaper](../morpho-blue-whitepaper.pdf).
+The core concepts of the Sparq protocol are described in the [Whitepaper](../sparq-whitepaper.pdf).
 These concepts have been verified using CVL.
 We first give a [high-level description](#high-level-description) of the verification and then describe the [folder and file structure](#folder-and-file-structure) of the specification files.
 
 # High-level description
 
-The Morpho Blue protocol allows users to take out collateralized loans on ERC20 tokens.
+The Sparq protocol allows users to take out collateralized loans on ERC20 tokens.
 
 ## ERC20 tokens and transfers
 
-For a given market, Morpho Blue relies on the fact that the tokens involved respect the ERC20 standard.
-In particular, in case of a transfer, it is assumed that the balance of Morpho Blue increases or decreases (depending if it's the recipient or the sender) of the amount transferred.
+For a given market, Sparq relies on the fact that the tokens involved respect the ERC20 standard.
+In particular, in case of a transfer, it is assumed that the balance of Sparq increases or decreases (depending if it's the recipient or the sender) of the amount transferred.
 
 The file [Transfer.spec](specs/Transfer.spec) defines a summary of the transfer functions.
-This summary is taken as the reference implementation to check that the balance of the Morpho Blue contract changes as expected.
+This summary is taken as the reference implementation to check that the balance of the Sparq contract changes as expected.
 
 ```solidity
 function summarySafeTransferFrom(address token, address from, address to, uint256 amount) {
@@ -41,8 +41,8 @@ The use of the library can make it difficult for the provers, so the summary is 
 
 ## Markets
 
-The Morpho Blue contract is a singleton contract that defines different markets.
-Markets on Morpho Blue depend on a pair of assets, the loan token that is supplied and borrowed, and the collateral token.
+The Sparq contract is a singleton contract that defines different markets.
+Markets on Sparq depend on a pair of assets, the loan token that is supplied and borrowed, and the collateral token.
 Taking out a loan requires to deposit some collateral, which stays idle in the contract.
 Additionally, every loan token that is not borrowed also stays idle in the contract.
 This is verified by the following property:
@@ -67,7 +67,7 @@ Said otherwise, markets are independent: tokens from a given market cannot be im
 
 ## Shares
 
-When supplying on Morpho Blue, interest is earned over time, and the distribution is implemented through a shares mechanism.
+When supplying on Sparq, interest is earned over time, and the distribution is implemented through a shares mechanism.
 Shares increase in value as interest is accrued.
 The share mechanism is implemented symmetrically for the borrow side: a share of borrow increasing in value over time represents additional owed interest.
 The rule `accrueInterestIncreasesSupplyExchangeRate` checks this property for the supply side with the following statement.
@@ -99,8 +99,8 @@ To ensure that liquidators have the time to interact with unhealthy positions, i
 Notably, it is verified that in the absence of accrued interest, which is the case when creating a new position or when interacting multiple times in the same block, a position cannot be made unhealthy.
 
 Let's define bad debt of a position as the amount borrowed when it is backed by no collateral.
-Morpho Blue automatically realizes the bad debt when liquidating a position, by transferring it to the lenders.
-In effect, this means that there is no bad debt on Morpho Blue, which is verified by the following invariant.
+Sparq automatically realizes the bad debt when liquidating a position, by transferring it to the lenders.
+In effect, this means that there is no bad debt on Sparq, which is verified by the following invariant.
 
 ```solidity
 invariant alwaysCollateralized(MorphoHarness.Id id, address borrower)
@@ -111,7 +111,7 @@ More generally, this means that the result of liquidating a position multiple ti
 
 ## Authorization
 
-Morpho Blue also defines primitive authorization system, where users can authorize an account to fully manage their position.
+Sparq also defines primitive authorization system, where users can authorize an account to fully manage their position.
 This allows to rebuild more granular control of the position on top by authorizing an immutable contract with limited capabilities.
 The authorization is verified to be sound in the sense that no user can modify the position of another user without proper authorization (except when liquidating).
 
@@ -146,7 +146,7 @@ In this way, it is checked that the supply shares are increasing when the caller
 
 ### Enabled LLTV and IRM
 
-Creating a market is permissionless on Morpho Blue, but some parameters should fall into the range of admitted values.
+Creating a market is permissionless on Sparq, but some parameters should fall into the range of admitted values.
 Notably, the LLTV value should be enabled beforehand.
 The following rule checks that no market can ever exist with a LLTV that had not been previously approved.
 
@@ -210,17 +210,17 @@ The `canWithdrawCollateralAll` rule ensures that in the case where the account h
 
 ## Protection against common attack vectors
 
-Other common and known attack vectors are verified to not be possible on the Morpho Blue protocol.
+Other common and known attack vectors are verified to not be possible on the Sparq protocol.
 
 ### Reentrancy
 
 Reentrancy is a common attack vector that happens when a call to a contract allows, when in a temporary state, to call the same contract again.
 The state of the contract usually refers to the storage variables, which can typically hold values that are meant to be used only after the full execution of the current function.
-The Morpho Blue contract is verified to not be vulnerable to this kind of reentrancy attack thanks to the rule `reentrancySafe`.
+The Sparq contract is verified to not be vulnerable to this kind of reentrancy attack thanks to the rule `reentrancySafe`.
 
 ### Extraction of value
 
-The Morpho Blue protocol uses a conservative approach to handle arithmetic operations.
+The Sparq protocol uses a conservative approach to handle arithmetic operations.
 Rounding is done such that potential (small) errors are in favor of the protocol, which ensures that it is not possible to extract value from other users.
 
 The rule `supplyWithdraw` handles the simple scenario of a supply followed by a withdraw, and has the following check.
@@ -242,10 +242,10 @@ The [`certora/specs`](specs) folder contains the following files:
 
 - [`AccrueInterest.spec`](specs/AccrueInterest.spec) checks that the main functions accrue interest at the start of the interaction.
   This is done by ensuring that accruing interest before calling the function does not change the outcome compared to just calling the function.
-  View functions do not necessarily respect this property (for example, `totalSupplyShares`), and are filtered out.
+  View functions do not necessarily respect this property (for example, `totalSupplyShares`), and are filtered out.
 - [`AssetsAccounting.spec`](specs/AssetsAccounting.spec) checks that when exiting a position the user cannot get more than what was owed.
   Similarly, when entering a position, the assets owned as a result are no greater than what was given.
-- [`ConsistentState.spec`](specs/ConsistentState.spec) checks that the state (storage) of the Morpho contract is consistent.
+- [`ConsistentState.spec`](specs/ConsistentState.spec) checks that the state (storage) of the Sparq contract is consistent.
   This includes checking that the accounting of the total amount and shares is correct, that markets are independent from each other, that only enabled IRMs and LLTVs can be used, and that users cannot have their position made worse by an unauthorized account.
 - [`ExactMath.spec`](specs/ExactMath.spec) checks precise properties when taking into account exact multiplication and division.
   Notably, this file specifies that using supply and withdraw in the same block cannot yield more funds than at the start.
@@ -260,12 +260,12 @@ The [`certora/specs`](specs) folder contains the following files:
 - [`StayHealthy.spec`](specs/Health.spec) checks that functions cannot render an account unhealthy.
 - [`Transfer.spec`](specs/Transfer.spec) checks the summarization of the safe transfer library functions that are used in other specification files.
 
-The [`certora/confs`](confs) folder contains a configuration file for each corresponding specification file.
+The [`certora/confs`](confs) folder contains a configuration file for each corresponding specification file.
 
-The [`certora/helpers`](helpers) folder contains contracts that enable the verification of Morpho Blue.
+The [`certora/helpers`](helpers) folder contains contracts that enable the verification of Sparq.
 Notably, this allows handling the fact that library functions should be called from a contract to be verified independently, and it allows defining needed getters.
 
-The [`certora/dispatch`](dispatch) folder contains different contracts similar to the ones that are expected to be called from Morpho Blue.
+The [`certora/dispatch`](dispatch) folder contains different contracts similar to the ones that are expected to be called from Sparq.
 
 # Getting started
 
