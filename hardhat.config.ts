@@ -1,4 +1,5 @@
 import "@nomicfoundation/hardhat-chai-matchers";
+import "@nomicfoundation/hardhat-verify";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-foundry";
 import "@nomicfoundation/hardhat-network-helpers";
@@ -6,14 +7,19 @@ import "@typechain/hardhat";
 import * as dotenv from "dotenv";
 import "ethers-maths";
 import "hardhat-gas-reporter";
-import "hardhat-tracer";
+// import "hardhat-tracer";
 import { HardhatUserConfig } from "hardhat/config";
 import "solidity-coverage";
 
 dotenv.config();
 
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "";
+
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
+  etherscan: {
+    apiKey: ETHERSCAN_API_KEY,
+  },
   networks: {
     hardhat: {
       chainId: 1,
@@ -23,6 +29,11 @@ const config: HardhatUserConfig = {
       accounts: {
         count: 202, // must be even
       },
+    },
+    sepolia: {
+      url: process.env.SEPOLIA_RPC_URL || "https://sepolia.infura.io/v3/YOUR_INFURA_KEY", // à définir dans .env
+      accounts: process.env.PRIVATEKEY ? [process.env.PRIVATEKEY] : [],
+      chainId: 11155111,
     },
   },
   solidity: {
@@ -46,10 +57,6 @@ const config: HardhatUserConfig = {
     target: "ethers-v6",
     outDir: "types/",
     externalArtifacts: ["deps/**/*.json"],
-  },
-  tracer: {
-    defaultVerbosity: 1,
-    gasCost: true,
   },
 };
 
